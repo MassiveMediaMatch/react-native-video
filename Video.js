@@ -229,6 +229,18 @@ export default class Video extends Component {
     }
   };
 
+  _onVolumeChanged = (event) => {
+  	if (this.props.onVolumeChanged) {
+      this.props.onVolumeChanged(event.nativeEvent);
+    }
+  };
+
+  _onSilentSwitchChanged = (event) => {
+  	if (this.props.onSilentSwitchChanged) {
+      this.props.onSilentSwitchChanged(event.nativeEvent);
+    }
+  };
+
   getViewManagerConfig = viewManagerName => {
     if (!NativeModules.UIManager.getViewManagerConfig) {
       return NativeModules.UIManager[viewManagerName];
@@ -303,6 +315,8 @@ export default class Video extends Component {
       onAudioBecomingNoisy: this._onAudioBecomingNoisy,
       onPictureInPictureStatusChanged: this._onPictureInPictureStatusChanged,
       onRestoreUserInterfaceForPictureInPictureStop: this._onRestoreUserInterfaceForPictureInPictureStop,
+      onVolumeChanged: this._onVolumeChanged,
+      onSilentSwitchChanged: this._onSilentSwitchChanged,
     });
 
     const posterStyle = {
@@ -367,6 +381,8 @@ Video.propTypes = {
   onVideoFullscreenPlayerDidPresent: PropTypes.func,
   onVideoFullscreenPlayerWillDismiss: PropTypes.func,
   onVideoFullscreenPlayerDidDismiss: PropTypes.func,
+  onVolumeChanged: PropTypes.func,
+  onSilentSwitchChanged: PropTypes.func,
 
   /* Wrapper component */
   source: PropTypes.oneOfType([
@@ -431,6 +447,7 @@ Video.propTypes = {
   playInBackground: PropTypes.bool,
   playWhenInactive: PropTypes.bool,
   ignoreSilentSwitch: PropTypes.oneOf(['ignore', 'obey']),
+  volumeOverridesSilentSwitch: PropTypes.bool,
   reportBandwidth: PropTypes.bool,
   disableFocus: PropTypes.bool,
   controls: PropTypes.bool,

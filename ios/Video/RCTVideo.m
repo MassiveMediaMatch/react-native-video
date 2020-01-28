@@ -5,6 +5,7 @@
 #import <React/UIView+React.h>
 #include <MediaAccessibility/MediaAccessibility.h>
 #include <AVFoundation/AVFoundation.h>
+#import "SharkfoodMuteSwitchDetector.h"
 
 static NSString *const statusKeyPath = @"status";
 static NSString *const playbackLikelyToKeepUpKeyPath = @"playbackLikelyToKeepUp";
@@ -21,6 +22,15 @@ static int const RCTVideoUnset = -1;
 #else
     #define DebugLog(...) (void)0
 #endif
+
+static BOOL volumeOverridesMuteSwitch = NO;
+
+@interface RCTVideo ()
+@property (nonatomic, strong) SharkfoodMuteSwitchDetector* muteSwitchDetector;
+@property (nonatomic, assign) BOOL volumeObserverSet;
+@property (nonatomic, assign) BOOL silent;
+@property (nonatomic, assign) BOOL firstSilentNotificationReceived;
+@end
 
 @implementation RCTVideo
 {
@@ -66,6 +76,7 @@ static int const RCTVideoUnset = -1;
   BOOL _playWhenInactive;
   BOOL _pictureInPicture;
   NSString * _ignoreSilentSwitch;
+  BOOL _volumeOverridesSilentSwitch;
   NSString * _resizeMode;
   BOOL _fullscreen;
   BOOL _fullscreenAutorotate;
@@ -107,12 +118,14 @@ static int const RCTVideoUnset = -1;
     _playWhenInactive = false;
     _pictureInPicture = false;
     _ignoreSilentSwitch = @"inherit"; // inherit, ignore, obey
+	  _volumeOverridesSilentSwitch = NO;
 #if TARGET_OS_IOS
     _restoreUserInterfaceForPIPStopCompletionHandler = NULL;
 #endif
 #if __has_include(<react-native-video/RCTVideoCache.h>)
     _videoCache = [RCTVideoCache sharedInstance];
 #endif
+
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(applicationWillResignActive:)
                                                  name:UIApplicationWillResignActiveNotification
@@ -206,6 +219,12 @@ static int const RCTVideoUnset = -1;
   [self removePlayerItemObservers];
   [_player removeObserver:self forKeyPath:playbackRate context:nil];
   [_player removeObserver:self forKeyPath:externalPlaybackActive context: nil];
+	
+  if (_volumeObserverSet) {
+	  [[AVAudioSession sharedInstance] removeObserver:self forKeyPath:@"outputVolume"];
+	  _volumeObserverSet = NO;
+  }
+  self.muteSwitchDetector.silentNotify = nil;
 }
 
 #pragma mark - App lifecycle handlers
@@ -346,6 +365,11 @@ static int const RCTVideoUnset = -1;
   [self removePlayerTimeObserver];
   [self removePlayerItemObservers];
 
+  if (_volumeObserverSet) {
+    [[AVAudioSession sharedInstance] removeObserver:self forKeyPath:@"outputVolume"];
+	  _volumeObserverSet = NO;
+  }
+	
   dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t) 0), dispatch_get_main_queue(), ^{
 
     // perform on next run loop, otherwise other passed react-props may not be set
@@ -365,7 +389,7 @@ static int const RCTVideoUnset = -1;
         [_player removeObserver:self forKeyPath:externalPlaybackActive context:nil];
         _isExternalPlaybackActiveObserverRegistered = NO;
       }
-        
+	          
       _player = [AVPlayer playerWithPlayerItem:_playerItem];
       _player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
       if (@available(iOS 10.0, *)) {
@@ -581,7 +605,24 @@ static int const RCTVideoUnset = -1;
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context
 {
-
+	if ([keyPath isEqual:@"outputVolume"])
+	{
+		CGFloat volume = [AVAudioSession sharedInstance].outputVolume;
+		NSLog(@"volume changed: %f", volume);
+		if (volume > 0) {
+			volumeOverridesMuteSwitch = YES;
+			[[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:nil];
+		} else {
+			volumeOverridesMuteSwitch = NO;
+			[[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategorySoloAmbient error:nil];
+		}
+		[_player setVolume:volume];
+		if (self.onVolumeChanged) {
+			self.onVolumeChanged(@{@"volume":@(volume)});
+		}
+		return;
+	}
+	
   if([keyPath isEqualToString:readyForDisplayKeyPath] && [change objectForKey:NSKeyValueChangeNewKey] && self.onReadyForDisplay) {
     self.onReadyForDisplay(@{@"target": self.reactTag});
     return;
@@ -750,10 +791,10 @@ static int const RCTVideoUnset = -1;
 }
 
 - (void)handleAVPlayerAccess:(NSNotification *)notification {
+	/* TODO: get this working
     AVPlayerItemAccessLog *accessLog = [((AVPlayerItem *)notification.object) accessLog];
     AVPlayerItemAccessLogEvent *lastEvent = accessLog.events.lastObject;
     
-    /* TODO: get this working
     if (self.onBandwidthUpdate) {
         self.onBandwidthUpdate(@{@"bitrate": [NSNumber numberWithFloat:lastEvent.observedBitrate]});
     }
@@ -858,17 +899,42 @@ static int const RCTVideoUnset = -1;
   [self applyModifiers];
 }
 
+- (void)setVolumeOverridesSilentSwitch:(BOOL)volumeOverridesSilentSwitch
+{
+  _volumeOverridesSilentSwitch = volumeOverridesSilentSwitch;
+  [self applyModifiers];
+}
+
 - (void)setPaused:(BOOL)paused
 {
   if (paused) {
     [_player pause];
     [_player setRate:0.0];
-  } else {
-    if([_ignoreSilentSwitch isEqualToString:@"ignore"]) {
-      [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:nil];
-    } else if([_ignoreSilentSwitch isEqualToString:@"obey"]) {
-      [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryAmbient error:nil];
-    }
+    self.muteSwitchDetector.silentNotify = nil;
+  }
+  else
+  {
+	// mute switch changed handler
+	if (!self.muteSwitchDetector) {
+		self.muteSwitchDetector = [SharkfoodMuteSwitchDetector shared];
+	}
+	self.muteSwitchDetector.silentNotify = nil;
+	__weak __typeof(self)weakSelf = self;
+	self.muteSwitchDetector.silentNotify = ^(BOOL silent) {
+		[weakSelf setMuteSwitch:silent];
+	};
+
+	  AVAudioSession* audioSession = [AVAudioSession sharedInstance];
+	  CGFloat volume = audioSession.outputVolume;
+	  
+	  [audioSession setActive:YES error:nil];
+	  if (!_volumeObserverSet) {
+        [audioSession addObserver:self forKeyPath:@"outputVolume" options:0 context:nil];
+        _volumeObserverSet = YES;
+	  }
+	  
+	  NSLog(@"output volume: %f", volume);
+	  [_player setVolume:volume];
 	  
 	if (@available(iOS 10.0, *)) {
 		[_player playImmediatelyAtRate:1.0];
@@ -961,7 +1027,6 @@ static int const RCTVideoUnset = -1;
   _maxBitRate = maxBitRate;
   _playerItem.preferredPeakBitRate = maxBitRate;
 }
-
 
 - (void)applyModifiers
 {
@@ -1507,6 +1572,11 @@ static int const RCTVideoUnset = -1;
   
   [self removePlayerTimeObserver];
   [self removePlayerItemObservers];
+
+	if (_volumeObserverSet) {
+		[[AVAudioSession sharedInstance] removeObserver:self forKeyPath:@"outputVolume"];
+		_volumeObserverSet = NO;
+	}
   
   _eventDispatcher = nil;
   [[NSNotificationCenter defaultCenter] removeObserver:self];
@@ -1627,5 +1697,38 @@ static int const RCTVideoUnset = -1;
   _restoreUserInterfaceForPIPStopCompletionHandler = completionHandler;
 }
 #endif
+
+- (void)setMuteSwitch:(BOOL)silent
+{
+	NSLog(@"silent: %@", silent ? @"YES" : @"NO");
+	// this notify handler is always called at least once for the initial state
+	if (silent != self.silent || !self.firstSilentNotificationReceived) {
+		if (silent) {
+		  // once the user explicitly silences the device, we reset override switch
+			if (self.firstSilentNotificationReceived) {
+			  volumeOverridesMuteSwitch = NO;
+			}
+
+		  // 'AVAudioSessionCategorySoloAmbient': Your audio is silenced by screen locking and by the Silent switch (called the Ring/Silent switch on iPhone).
+		  [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategorySoloAmbient error:nil];
+		} else {
+		  [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:nil];
+		}
+
+		// check if the user has previously overridden the mute switch (in another RCTVideo instance for example)
+		if (volumeOverridesMuteSwitch) {
+			[[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:nil];
+		}
+	}
+
+	if (silent != self.silent) {
+		if (self.onSilentSwitchChanged) {
+		  self.onSilentSwitchChanged(@{@"muted": @(silent)});
+		}
+		self.silent = silent;
+	}
+
+	self.firstSilentNotificationReceived = YES;
+}
 
 @end

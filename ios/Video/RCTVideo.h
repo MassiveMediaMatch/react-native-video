@@ -18,6 +18,7 @@
 #elif TARGET_OS_TV
 @interface RCTVideo : UIView <RCTVideoPlayerViewControllerDelegate>
 #else
+API_AVAILABLE(ios(9.0))
 @interface RCTVideo : UIView <RCTVideoPlayerViewControllerDelegate, AVPictureInPictureControllerDelegate>
 #endif
 
@@ -42,6 +43,8 @@
 @property (nonatomic, copy) RCTDirectEventBlock onVideoExternalPlaybackChange;
 @property (nonatomic, copy) RCTDirectEventBlock onPictureInPictureStatusChanged;
 @property (nonatomic, copy) RCTDirectEventBlock onRestoreUserInterfaceForPictureInPictureStop;
+@property (nonatomic, copy) RCTDirectEventBlock onVolumeChanged;
+@property (nonatomic, copy) RCTDirectEventBlock onSilentSwitchChanged;
 
 - (instancetype)initWithEventDispatcher:(RCTEventDispatcher *)eventDispatcher NS_DESIGNATED_INITIALIZER;
 
