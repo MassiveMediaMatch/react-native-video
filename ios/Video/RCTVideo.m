@@ -220,10 +220,10 @@ static BOOL volumeOverridesMuteSwitch = NO;
   [_player removeObserver:self forKeyPath:playbackRate context:nil];
   [_player removeObserver:self forKeyPath:externalPlaybackActive context: nil];
 	
-  if (_volumeObserverSet) {
-	  [[AVAudioSession sharedInstance] removeObserver:self forKeyPath:@"outputVolume"];
-	  _volumeObserverSet = NO;
-  }
+//  if (_volumeObserverSet) {
+//	  [[AVAudioSession sharedInstance] removeObserver:self forKeyPath:@"outputVolume"];
+//	  _volumeObserverSet = NO;
+//  }
   self.muteSwitchDetector.silentNotify = nil;
 }
 
@@ -365,10 +365,10 @@ static BOOL volumeOverridesMuteSwitch = NO;
   [self removePlayerTimeObserver];
   [self removePlayerItemObservers];
 
-  if (_volumeObserverSet) {
-    [[AVAudioSession sharedInstance] removeObserver:self forKeyPath:@"outputVolume"];
-	  _volumeObserverSet = NO;
-  }
+//  if (_volumeObserverSet) {
+//    [[AVAudioSession sharedInstance] removeObserver:self forKeyPath:@"outputVolume"];
+//	  _volumeObserverSet = NO;
+//  }
 	
   dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t) 0), dispatch_get_main_queue(), ^{
 
@@ -605,23 +605,23 @@ static BOOL volumeOverridesMuteSwitch = NO;
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context
 {
-	if ([keyPath isEqual:@"outputVolume"])
-	{
-		CGFloat volume = [AVAudioSession sharedInstance].outputVolume;
-		NSLog(@"volume changed: %f", volume);
-		if (volume > 0) {
-			volumeOverridesMuteSwitch = YES;
-			[[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:nil];
-		} else {
-			volumeOverridesMuteSwitch = NO;
-			[[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategorySoloAmbient error:nil];
-		}
-		[_player setVolume:volume];
-		if (self.onVolumeChanged) {
-			self.onVolumeChanged(@{@"volume":@(volume)});
-		}
-		return;
-	}
+//	if ([keyPath isEqual:@"outputVolume"])
+//	{
+//		CGFloat volume = [AVAudioSession sharedInstance].outputVolume;
+//		NSLog(@"volume changed: %f", volume);
+//		if (volume > 0) {
+//			volumeOverridesMuteSwitch = YES;
+//			[[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:nil];
+//		} else {
+//			volumeOverridesMuteSwitch = NO;
+//			[[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategorySoloAmbient error:nil];
+//		}
+//		[_player setVolume:volume];
+//		if (self.onVolumeChanged) {
+//			self.onVolumeChanged(@{@"volume":@(volume)});
+//		}
+//		return;
+//	}
 	
   if([keyPath isEqualToString:readyForDisplayKeyPath] && [change objectForKey:NSKeyValueChangeNewKey] && self.onReadyForDisplay) {
     self.onReadyForDisplay(@{@"target": self.reactTag});
@@ -915,26 +915,26 @@ static BOOL volumeOverridesMuteSwitch = NO;
   else
   {
 	// mute switch changed handler
-	if (!self.muteSwitchDetector) {
-		self.muteSwitchDetector = [SharkfoodMuteSwitchDetector shared];
-	}
-	self.muteSwitchDetector.silentNotify = nil;
-	__weak __typeof(self)weakSelf = self;
-	self.muteSwitchDetector.silentNotify = ^(BOOL silent) {
-		[weakSelf setMuteSwitch:silent];
-	};
-
-	  AVAudioSession* audioSession = [AVAudioSession sharedInstance];
-	  CGFloat volume = audioSession.outputVolume;
-	  
-	  [audioSession setActive:YES error:nil];
-	  if (!_volumeObserverSet) {
-        [audioSession addObserver:self forKeyPath:@"outputVolume" options:0 context:nil];
-        _volumeObserverSet = YES;
-	  }
-	  
-	  NSLog(@"output volume: %f", volume);
-	  [_player setVolume:volume];
+//	if (!self.muteSwitchDetector) {
+//		self.muteSwitchDetector = [SharkfoodMuteSwitchDetector shared];
+//	}
+//	self.muteSwitchDetector.silentNotify = nil;
+//	__weak __typeof(self)weakSelf = self;
+//	self.muteSwitchDetector.silentNotify = ^(BOOL silent) {
+//		[weakSelf setMuteSwitch:silent];
+//	};
+//
+//	  AVAudioSession* audioSession = [AVAudioSession sharedInstance];
+//	  CGFloat volume = audioSession.outputVolume;
+//
+//	  [audioSession setActive:YES error:nil];
+//	  if (!_volumeObserverSet) {
+//        [audioSession addObserver:self forKeyPath:@"outputVolume" options:0 context:nil];
+//        _volumeObserverSet = YES;
+//	  }
+//
+//	  NSLog(@"output volume: %f", volume);
+//	  [_player setVolume:volume];
 	  
 	if (@available(iOS 10.0, *)) {
 		[_player playImmediatelyAtRate:1.0];
@@ -1573,10 +1573,10 @@ static BOOL volumeOverridesMuteSwitch = NO;
   [self removePlayerTimeObserver];
   [self removePlayerItemObservers];
 
-	if (_volumeObserverSet) {
-		[[AVAudioSession sharedInstance] removeObserver:self forKeyPath:@"outputVolume"];
-		_volumeObserverSet = NO;
-	}
+//	if (_volumeObserverSet) {
+//		[[AVAudioSession sharedInstance] removeObserver:self forKeyPath:@"outputVolume"];
+//		_volumeObserverSet = NO;
+//	}
   
   _eventDispatcher = nil;
   [[NSNotificationCenter defaultCenter] removeObserver:self];
