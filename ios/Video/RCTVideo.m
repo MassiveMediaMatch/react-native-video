@@ -6,6 +6,8 @@
 #include <MediaAccessibility/MediaAccessibility.h>
 #include <AVFoundation/AVFoundation.h>
 #import "SharkfoodMuteSwitchDetector.h"
+#import <AVKit/AVKit.h>
+#import <Photos/Photos.h>
 
 static NSString *const statusKeyPath = @"status";
 static NSString *const playbackLikelyToKeepUpKeyPath = @"playbackLikelyToKeepUp";
@@ -506,6 +508,22 @@ static BOOL volumeOverridesMuteSwitch = NO;
     DebugLog(@"Could not find video URL in source '%@'", source);
     return;
   }
+	
+	if ([uri hasPrefix:@"ph://"])
+	{
+		NSString *localIdentifier = [uri stringByReplacingOccurrencesOfString:@"ph://" withString:@""];
+		PHAsset* phAsset = [PHAsset fetchAssetsWithLocalIdentifiers:@[localIdentifier] options:nil].firstObject;
+		PHVideoRequestOptions *option = [PHVideoRequestOptions new];
+		
+		__weak __typeof(self) weakSelf = self;
+		[[PHImageManager defaultManager] requestAVAssetForVideo:phAsset options:option resultHandler:^(AVAsset * avasset, AVAudioMix * audioMix, NSDictionary * info) {
+			
+			NSMutableDictionary *assetOptions = [[NSMutableDictionary alloc] init];
+			[weakSelf playerItemPrepareText:avasset assetOptions:assetOptions withCallback:handler];
+			
+		}];
+		return;
+	}
 
   NSURL *url = isNetwork || isAsset
     ? [NSURL URLWithString:uri]
