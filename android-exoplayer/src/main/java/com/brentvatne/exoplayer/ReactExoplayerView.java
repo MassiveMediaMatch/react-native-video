@@ -413,8 +413,10 @@ class ReactExoplayerView extends FrameLayout implements
                         minLoadRetryCount, DashMediaSource.DEFAULT_LIVE_PRESENTATION_DELAY_MS,
                         mainHandler, null);
             case C.TYPE_HLS:
-                return new HlsMediaSource(uri, mediaDataSourceFactory, 
-                        minLoadRetryCount, mainHandler, null);
+                return new HlsMediaSource.Factory(mediaDataSourceFactory)
+                    .setAllowChunklessPreparation(true)
+                    .setMinLoadableRetryCount(minLoadRetryCount)
+                    .createMediaSource(uri, mainHandler, null);
             case C.TYPE_OTHER:
                 return new ExtractorMediaSource(uri, mediaDataSourceFactory, new DefaultExtractorsFactory(),
                         mainHandler, null);
