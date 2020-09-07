@@ -76,7 +76,7 @@ RCT_REMAP_METHOD(save,
         rejecter:(RCTPromiseRejectBlock)reject)
 {
     [self.bridge.uiManager prependUIBlock:^(__unused RCTUIManager *uiManager, NSDictionary<NSNumber *, AbloVideo *> *viewRegistry) {
-        AbloVideo *view = viewRegistry[reactTag];
+        AbloVideo *view = (AbloVideo*)viewRegistry[reactTag];
         if (![view isKindOfClass:[AbloVideo class]]) {
             RCTLogError(@"Invalid view returned from registry, expecting AbloVideo, got: %@", view);
         } else {
@@ -86,6 +86,17 @@ RCT_REMAP_METHOD(save,
 }
 RCT_EXPORT_VIEW_PROPERTY(onPictureInPictureStatusChanged, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onRestoreUserInterfaceForPictureInPictureStop, RCTDirectEventBlock);
+
+RCT_EXPORT_METHOD(displayIndex:(nonnull NSNumber*)reactTag index:(nonnull NSNumber*)index) {
+	[self.bridge.uiManager prependUIBlock:^(__unused RCTUIManager *uiManager, NSDictionary<NSNumber *, AbloVideo *> *viewRegistry) {
+		AbloVideo *view = (AbloVideo*)viewRegistry[reactTag];
+		if (![view isKindOfClass:[AbloVideo class]]) {
+			RCTLogError(@"Invalid view returned from registry, expecting AbloVideo, got: %@", view);
+		} else {
+			[view displayIndex:[index integerValue]];
+		}
+    }];
+}
 
 - (NSDictionary *)constantsToExport
 {

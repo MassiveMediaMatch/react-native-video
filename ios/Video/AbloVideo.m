@@ -461,6 +461,10 @@ static BOOL volumeOverridesMuteSwitch = NO;
   return nil;
 }
 
+- (void)displayIndex: (NSInteger)index {
+	[self setPlaylistIndex:index];
+}
+
 - (void)playerItemPrepareText:(AVAsset *)asset assetOptions:(NSDictionary * __nullable)assetOptions withCallback:(void(^)(AVPlayerItem *))handler
 {
   if (!_textTracks || _textTracks.count==0) {
