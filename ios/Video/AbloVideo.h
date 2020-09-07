@@ -52,4 +52,6 @@ API_AVAILABLE(ios(9.0))
 
 - (void)save:(NSDictionary *)options resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject;
 
+- (void)displayIndex: (NSInteger)index;
+
 @end
