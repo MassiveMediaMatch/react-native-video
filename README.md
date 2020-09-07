@@ -3,9 +3,15 @@
 A `<Video>` component for react-native, as seen in
 [react-native-login](https://github.com/brentvatne/react-native-login)!
 
+Version 5.x recommends react-native >= 0.60.0 for Android 64bit builds and Android X support.
+
 Version 4.x requires react-native >= 0.57.0
 
 Version 3.x requires react-native >= 0.40.0
+
+### Version 5.0.0 breaking changes
+
+Version 5 introduces breaking changes on Android, please check carefully the steps described there: [Android Installation](#Android-installation)
 
 ### Version 4.0.0 breaking changes
 Version 4.0.0 changes some behaviors and may require updates to your Gradle files.  See [Updating](#updating) for details.
@@ -20,6 +26,11 @@ Version 3.0 features a number of changes to existing behavior. See [Updating](#u
 ## Table of Contents
 
 * [Installation](#installation)
+  * [iOS](#ios-installation)
+  * [tvOS](#tvos-installation)
+  * [Android](#android-installation)
+  * [Windows](#windows-installation)
+  * [react-native-dom](#react-native-dom-installation)
 * [Usage](#usage)
 * [iOS App Transport Security](#ios-app-transport-security)
 * [Audio Mixing](#audio-mixing)
@@ -42,11 +53,17 @@ yarn add react-native-video
 
 Then follow the instructions for your platform to link react-native-video into your project:
 
-### iOS
+### iOS installation
 <details>
   <summary>iOS details</summary>
 
 #### Standard Method
+
+**React Native 0.60 and above**
+
+Run `npx pod-install`. Linking is not required in React Native 0.60 and above.
+
+**React Native 0.59 and below**
 
 Run `react-native link react-native-video` to link the react-native-video library.
 
@@ -74,10 +91,10 @@ end
 
 </details>
 
-### tvOS
+### tvOS installation
   <details>
   <summary>tvOS details</summary>
-  
+
 `react-native link react-native-video` doesn’t work properly with the tvOS target so we need to add the library manually.
 
 First select your project in Xcode.
@@ -97,7 +114,7 @@ Select RCTVideo-tvOS
 <img src="./docs/tvOS-step-4.jpg" width="40%">
 </details>
 
-### Android
+### Android installation
 <details>
   <summary>Android details</summary>
 
@@ -121,16 +138,16 @@ include ':react-native-video'
 project(':react-native-video').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-video/android')
 ```
 
-
 #### **android/app/build.gradle**
 
-From version >= 5.0.0, you have to apply this changes:
+From version >= 5.0.0, you have to apply these changes:
 
 ```diff
 dependencies {
    ...
     compile project(':react-native-video')
-    implementation "com.android.support:appcompat-v7:${rootProject.ext.supportLibVersion}"
++   implementation "androidx.appcompat:appcompat:1.0.0"
+-   implementation "com.android.support:appcompat-v7:${rootProject.ext.supportLibVersion}"
 
 }
 ```
@@ -165,57 +182,39 @@ protected List<ReactPackage> getPackages() {
 ```
 </details>
 
-### Windows
+### Windows installation
 <details>
-  <summary>Windows details</summary>
+  <summary>Windows RNW C++/WinRT details</summary>
 
 Make the following additions to the given files manually:
 
 #### **windows/myapp.sln**
 
-Add the `ReactNativeVideo` project to your solution.
+Add the `ReactNativeVideoCPP` project to your solution.
 
-1. Open the solution in Visual Studio 2015
+1. Open the solution in Visual Studio 2019
 2. Right-click Solution icon in Solution Explorer > Add > Existing Project
-  * UWP: Select `node_modules\react-native-video\windows\ReactNativeVideo\ReactNativeVideo.csproj`
-  * WPF: Select `node_modules\react-native-video\windows\ReactNativeVideo.Net46\ReactNativeVideo.Net46.csproj`
+   Select `node_modules\react-native-video\windows\ReactNativeVideoCPP\ReactNativeVideoCPP.vcxproj`
 
-#### **windows/myapp/myapp.csproj**
+#### **windows/myapp/myapp.vcxproj**
 
-Add a reference to `ReactNativeVideo` to your main application project. From Visual Studio 2015:
+Add a reference to `ReactNativeVideoCPP` to your main application project. From Visual Studio 2019:
 
 1. Right-click main application project > Add > Reference...
-  * UWP: Check `ReactNativeVideo` from Solution Projects.
-  * WPF: Check `ReactNativeVideo.Net46` from Solution Projects.
+  Check `ReactNativeVideoCPP` from Solution Projects.
 
-#### **MainPage.cs**
+2. Modify files below to add the video package providers to your main application project
+#### **pch.h**
 
-Add the `ReactVideoPackage` class to your list of exported packages.
-```cs
-using ReactNative;
-using ReactNative.Modules.Core;
-using ReactNative.Shell;
-using ReactNativeVideo; // <-- Add this
-using System.Collections.Generic;
-...
+Add `#include "winrt/ReactNativeVideoCPP.h"`.
 
-        public override List<IReactPackage> Packages
-        {
-            get
-            {
-                return new List<IReactPackage>
-                {
-                    new MainReactPackage(),
-                    new ReactVideoPackage(), // <-- Add this
-                };
-            }
-        }
+#### **app.cpp**
 
-...
-```
+Add `PackageProviders().Append(winrt::ReactNativeVideoCPP::ReactPackageProvider());` before `InitializeComponent();`.
+
 </details>
 
-### react-native-dom
+### react-native-dom installation
 <details>
   <summary>react-native-dom details</summary>
 
@@ -275,8 +274,11 @@ var styles = StyleSheet.create({
 ### Configurable props
 * [allowsExternalPlayback](#allowsexternalplayback)
 * [audioOnly](#audioonly)
+* [automaticallyWaitsToMinimizeStalling](#automaticallyWaitsToMinimizeStalling)
 * [bufferConfig](#bufferconfig)
 * [controls](#controls)
+* [currentPlaybackTime](#currentPlaybackTime)
+* [disableFocus](#disableFocus)
 * [filter](#filter)
 * [filterEnabled](#filterEnabled)
 * [fullscreen](#fullscreen)
@@ -288,6 +290,7 @@ var styles = StyleSheet.create({
 * [ignoreSilentSwitch](#ignoresilentswitch)
 * [maxBitRate](#maxbitrate)
 * [minLoadRetryCount](#minLoadRetryCount)
+* [mixWithOthers](#mixWithOthers)
 * [muted](#muted)
 * [paused](#paused)
 * [pictureInPicture](#pictureinpicture)
@@ -295,6 +298,8 @@ var styles = StyleSheet.create({
 * [playWhenInactive](#playwheninactive)
 * [poster](#poster)
 * [posterResizeMode](#posterresizemode)
+* [preferredForwardBufferDuration](#preferredForwardBufferDuration)
+* [preventsDisplaySleepDuringVideoPlayback](#preventsDisplaySleepDuringVideoPlayback)
 * [progressUpdateInterval](#progressupdateinterval)
 * [rate](#rate)
 * [repeat](#repeat)
@@ -306,6 +311,7 @@ var styles = StyleSheet.create({
 * [source](#source)
 * [stereoPan](#stereopan)
 * [textTracks](#texttracks)
+* [trackId](#trackId)
 * [useTextureView](#usetextureview)
 * [volume](#volume)
 
@@ -353,6 +359,13 @@ For this to work, the poster prop must be set.
 
 Platforms: all
 
+#### automaticallyWaitsToMinimizeStalling
+A Boolean value that indicates whether the player should automatically delay playback in order to minimize stalling. For clients linked against iOS 10.0 and later
+* **false** - Immediately starts playback
+* **true (default)** - Delays playback in order to minimize stalling
+
+Platforms: iOS
+
 #### bufferConfig
 Adjust the buffer settings. This prop takes an object with one or more of the properties listed below.
 
@@ -361,7 +374,7 @@ Property | Type | Description
 minBufferMs | number | The default minimum duration of media that the player will attempt to ensure is buffered at all times, in milliseconds.
 maxBufferMs | number | The default maximum duration of media that the player will attempt to buffer, in milliseconds.
 bufferForPlaybackMs | number | The default duration of media that must be buffered for playback to start or resume following a user action such as a seek, in milliseconds.
-playbackAfterRebufferMs | number | The default duration of media that must be buffered for playback to resume after a rebuffer, in milliseconds. A rebuffer is defined to be caused by buffer depletion rather than a user action.
+bufferForPlaybackAfterRebufferMs | number | The default duration of media that must be buffered for playback to resume after a rebuffer, in milliseconds. A rebuffer is defined to be caused by buffer depletion rather than a user action.
 
 This prop should only be set when you are setting the source, changing it after the media is loaded will cause it to be reloaded.
 
@@ -377,6 +390,11 @@ bufferConfig={{
 
 Platforms: Android ExoPlayer
 
+#### currentPlaybackTime
+When playing an HLS live stream with a `EXT-X-PROGRAM-DATE-TIME` tag configured, then this property will contain the epoch value in msec.
+
+Platforms: Android ExoPlayer, iOS
+
 #### controls
 Determines whether to show player controls.
 * ** false (default)** - Don't show player controls
@@ -386,6 +404,8 @@ Note on iOS, controls are always shown when in fullscreen mode.
 
 For Android MediaPlayer, you will need to build your own controls or use a package like [react-native-video-controls](https://github.com/itsnubix/react-native-video-controls) or [react-native-video-player](https://github.com/cornedor/react-native-video-player).
 
+Note on Android ExoPlayer, native controls are available by default. If needed, you can also add your controls or use a package like [react-native-video-controls].
+
 Platforms: Android ExoPlayer, iOS, react-native-dom
 
 #### disableFocus
@@ -394,6 +414,11 @@ Determines whether video audio should override background music/audio in Android
 * **true** - Let background audio/music from other apps play
 
 Platforms: Android Exoplayer
+
+### DRM
+To setup DRM please follow [this guide](./DRM.md)
+
+Platforms: Android Exoplayer, iOS
 
 #### filter
 Add video filter
@@ -453,8 +478,6 @@ Platforms: iOS
 
 #### headers
 Pass headers to the HTTP client. Can be used for authorization. Headers must be a part of the source object.
-
-To enable this on iOS, you will need to manually edit RCTVideo.m and uncomment the header code in the playerItemForSource function. This is because the code used a private API and may cause your app to be rejected by the App Store. Use at your own risk.
 
 Example:
 ```
@@ -519,6 +542,14 @@ minLoadRetryCount={5} // retry 5 times
 
 Platforms: Android ExoPlayer
 
+#### mixWithOthers
+Controls how Audio mix with other apps.
+* **"inherit" (default)** - Use the default AVPlayer behavior
+* **"mix"** - Audio from this video mixes with audio from other apps.
+* **"duck"** - Reduces the volume of other apps while audio from this video plays.
+
+Platforms: iOS
+
 #### muted
 Controls whether the audio is muted
 * **false (default)** - Don't mute audio
@@ -575,6 +606,20 @@ Determines how to resize the poster image when the frame doesn't match the raw v
 
 Platforms: all
 
+#### preferredForwardBufferDuration
+The duration the player should buffer media from the network ahead of the playhead to guard against playback disruption. Sets the [preferredForwardBufferDuration](https://developer.apple.com/documentation/avfoundation/avplayeritem/1643630-preferredforwardbufferduration) instance property on AVPlayerItem.
+
+Default: 0
+
+Platforms: iOS
+
+#### preventsDisplaySleepDuringVideoPlayback
+Controls whether or not the display should be allowed to sleep while playing the video. Default is not to allow display to sleep.
+
+Default: true
+
+Platforms: iOS, Android
+
 #### progressUpdateInterval
 Delay in milliseconds between onProgress events in milliseconds.
 
@@ -602,8 +647,8 @@ Platforms: all
 #### reportBandwidth
 Determine whether to generate onBandwidthUpdate events. This is needed due to the high frequency of these events on ExoPlayer.
 
-* **false (default)** - Generate onBandwidthUpdate events
-* **true** - Don't generate onBandwidthUpdate events
+* **false (default)** - Don't generate onBandwidthUpdate events
+* **true** - Generate onBandwidthUpdate events
 
 Platforms: Android ExoPlayer
 
@@ -759,6 +804,17 @@ Note: Using this feature adding an entry for NSAppleMusicUsageDescription to you
 
 Platforms: iOS
 
+##### Explicit mimetype for the stream
+
+Provide a member `type` with value (`mpd`/`m3u8`/`ism`) inside the source object.
+Sometimes is needed when URL extension does not match with the mimetype that you are expecting, as seen on the next example. (Extension is .ism -smooth streaming- but file served is on format mpd -mpeg dash-)
+
+Example:
+```
+source={{ uri: 'http://host-serving-a-type-different-than-the-extension.ism/manifest(format=mpd-time-csf)',
+type: 'mpd' }}
+```
+
 ###### Other protocols
 
 The following other types are supported on some platforms, but aren't fully documented yet:
@@ -809,6 +865,11 @@ textTracks={[
 
 
 Platforms: Android ExoPlayer, iOS
+
+#### trackId
+Configure an identifier for the video stream to link the playback context to the events emitted.
+
+Platforms: Android ExoPlayer
 
 #### useTextureView
 Controls whether to output to a TextureView or SurfaceView.
@@ -927,6 +988,7 @@ duration | number | Length of the media in seconds
 naturalSize | object | Properties:<br> * width - Width in pixels that the video was encoded at<br> * height - Height in pixels that the video was encoded at<br> * orientation - "portrait" or "landscape"
 audioTracks | array | An array of audio track info objects with the following properties:<br> * index - Index number<br> * title - Description of the track<br> * language - 2 letter [ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) or 3 letter [ISO639-2](https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes) language code<br> * type - Mime type of track
 textTracks | array | An array of text track info objects with the following properties:<br> * index - Index number<br> * title - Description of the track<br> * language - 2 letter [ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) or 3 letter [ISO 639-2](https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes) language code<br> * type - Mime type of track
+videoTracks | array | An array of video track info objects with the following properties:<br> * trackId - ID for the track<br> * bitrate - Bit rate in bits per second<br> * codecs - Comma separated list of codecs<br> * height - Height of the video<br> * width - Width of the video
 
 Example:
 ```
@@ -952,6 +1014,11 @@ Example:
     { title: '#1 French', language: 'fr', index: 0, type: 'text/vtt' },
     { title: '#2 English CC', language: 'en', index: 1, type: 'text/vtt' },
     { title: '#3 English Director Commentary', language: 'en', index: 2, type: 'text/vtt' }
+  ],
+  videoTracks: [
+    { bitrate: 3987904, codecs: "avc1.640028", height: 720, trackId: "f1-v1-x3", width: 1280 },
+    { bitrate: 7981888, codecs: "avc1.640028", height: 1080, trackId: "f2-v1-x3", width: 1920 },
+    { bitrate: 1994979, codecs: "avc1.4d401f", height: 480, trackId: "f3-v1-x3", width: 848 }
   ]
 }
 ```
@@ -1103,7 +1170,7 @@ Methods operate on a ref to the Video element. You can create a ref using code l
 ```
 return (
   <Video source={...}
-    ref => (this.player = ref) />
+    ref={ref => (this.player = ref)} />
 );
 ```
 
@@ -1142,7 +1209,7 @@ Save video to your Photos with current filter prop. Returns promise.
 
 Example:
 ```
-let response = await this.save();
+let response = await this.player.save();
 let path = response.uri;
 ```
 
@@ -1154,12 +1221,12 @@ Notes:
  - Works with cached videos as well. (Checkout video-caching example)
  - If the video is has not began buffering (e.g. there is no internet connection) then the save function will throw an error.
  - If the video is buffering then the save function promise will return after the video has finished buffering and processing.
- 
+
 Future: 
  - Will support multiple qualities through options
  - Will support more formats in the future through options
  - Will support custom directory and file name through options
- 
+
 Platforms: iOS
 
 #### restoreUserInterfaceForPictureInPictureStopCompleted
@@ -1285,6 +1352,38 @@ To enable audio to play in background on iOS the audio session needs to be set t
 - [Lumpen Radio](https://github.com/jhabdas/lumpen-radio) contains another example integration using local files and full screen background video.
 
 ## Updating
+
+### Version 5.0.0
+
+Probably you want to update your gradle version:
+#### gradle-wrapper.properties
+```diff
+- distributionUrl=https\://services.gradle.org/distributions/gradle-3.3-all.zip
++ distributionUrl=https\://services.gradle.org/distributions/gradle-5.1.1-all.zip
+```
+
+#### **android/app/build.gradle**
+
+From version >= 5.0.0, you have to apply this changes:
+
+```diff
+dependencies {
+   ...
+    compile project(':react-native-video')
++   implementation "androidx.appcompat:appcompat:1.0.0"
+-   implementation "com.android.support:appcompat-v7:${rootProject.ext.supportLibVersion}"
+
+}
+```
+
+#### **android/gradle.properties**
+
+Migrating to AndroidX (needs version >= 5.0.0):
+
+```gradle.properties
+android.useAndroidX=true
+android.enableJetifier=true
+```
 
 ### Version 4.0.0
 

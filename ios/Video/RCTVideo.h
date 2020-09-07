@@ -14,12 +14,11 @@
 
 @class RCTEventDispatcher;
 #if __has_include(<react-native-video/RCTVideoCache.h>)
-@interface RCTVideo : UIView <RCTVideoPlayerViewControllerDelegate, DVAssetLoaderDelegatesDelegate>
+@interface RCTVideo : UIView <RCTVideoPlayerViewControllerDelegate, DVAssetLoaderDelegatesDelegate, AVAssetResourceLoaderDelegate>
 #elif TARGET_OS_TV
-@interface RCTVideo : UIView <RCTVideoPlayerViewControllerDelegate>
+@interface RCTVideo : UIView <RCTVideoPlayerViewControllerDelegate, AVAssetResourceLoaderDelegate>
 #else
-API_AVAILABLE(ios(9.0))
-@interface RCTVideo : UIView <RCTVideoPlayerViewControllerDelegate, AVPictureInPictureControllerDelegate>
+@interface RCTVideo : UIView <RCTVideoPlayerViewControllerDelegate, AVPictureInPictureControllerDelegate, AVAssetResourceLoaderDelegate>
 #endif
 
 @property (nonatomic, copy) RCTDirectEventBlock onVideoLoadStart;
@@ -45,11 +44,26 @@ API_AVAILABLE(ios(9.0))
 @property (nonatomic, copy) RCTDirectEventBlock onRestoreUserInterfaceForPictureInPictureStop;
 @property (nonatomic, copy) RCTDirectEventBlock onVolumeChanged;
 @property (nonatomic, copy) RCTDirectEventBlock onSilentSwitchChanged;
+@property (nonatomic, copy) RCTDirectEventBlock onGetLicense;
+
+typedef NS_ENUM(NSInteger, RCTVideoError) {
+    RCTVideoErrorFromJSPart,
+    RCTVideoErrorLicenseRequestNotOk,
+    RCTVideoErrorNoDataFromLicenseRequest,
+    RCTVideoErrorNoSPC,
+    RCTVideoErrorNoDataRequest,
+    RCTVideoErrorNoCertificateData,
+    RCTVideoErrorNoCertificateURL,
+    RCTVideoErrorNoFairplayDRM,
+    RCTVideoErrorNoDRMData
+};
 
 - (instancetype)initWithEventDispatcher:(RCTEventDispatcher *)eventDispatcher NS_DESIGNATED_INITIALIZER;
 
 - (AVPlayerViewController*)createPlayerViewController:(AVPlayer*)player withPlayerItem:(AVPlayerItem*)playerItem;
 
 - (void)save:(NSDictionary *)options resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject;
+- (void)setLicenseResult:(NSString * )license;
+- (BOOL)setLicenseResultError:(NSString * )error;
 
 @end
