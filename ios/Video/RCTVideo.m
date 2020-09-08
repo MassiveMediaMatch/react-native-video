@@ -32,6 +32,7 @@ static BOOL volumeOverridesMuteSwitch = NO;
 @property (nonatomic, assign) BOOL volumeObserverSet;
 @property (nonatomic, assign) BOOL silent;
 @property (nonatomic, assign) BOOL firstSilentNotificationReceived;
+
 @end
 
 @implementation RCTVideo
@@ -999,6 +1000,8 @@ static BOOL volumeOverridesMuteSwitch = NO;
 - (void)setVolumeOverridesSilentSwitch:(BOOL)volumeOverridesSilentSwitch
 {
   _volumeOverridesSilentSwitch = volumeOverridesSilentSwitch;
+}
+
 - (void)setMixWithOthers:(NSString *)mixWithOthers
 {
   _mixWithOthers = mixWithOthers;
@@ -1011,37 +1014,6 @@ static BOOL volumeOverridesMuteSwitch = NO;
     [_player pause];
     [_player setRate:0.0];
     self.muteSwitchDetector.silentNotify = nil;
-  }
-  else
-  {
-	// mute switch changed handler
-//	if (!self.muteSwitchDetector) {
-//		self.muteSwitchDetector = [SharkfoodMuteSwitchDetector shared];
-//	}
-//	self.muteSwitchDetector.silentNotify = nil;
-//	__weak __typeof(self)weakSelf = self;
-//	self.muteSwitchDetector.silentNotify = ^(BOOL silent) {
-//		[weakSelf setMuteSwitch:silent];
-//	};
-//
-//	  AVAudioSession* audioSession = [AVAudioSession sharedInstance];
-//	  CGFloat volume = audioSession.outputVolume;
-//
-//	  [audioSession setActive:YES error:nil];
-//	  if (!_volumeObserverSet) {
-//        [audioSession addObserver:self forKeyPath:@"outputVolume" options:0 context:nil];
-//        _volumeObserverSet = YES;
-//	  }
-//
-//	  NSLog(@"output volume: %f", volume);
-//	  [_player setVolume:volume];
-	  
-	if (@available(iOS 10.0, *)) {
-		[_player playImmediatelyAtRate:1.0];
-	} else {
-		[_player play];
-	}
-	
   } else {
     AVAudioSession *session = [AVAudioSession sharedInstance];
     AVAudioSessionCategory category = nil;
@@ -1376,7 +1348,7 @@ static BOOL volumeOverridesMuteSwitch = NO;
   [_player.currentItem selectMediaOption:mediaOption inMediaSelectionGroup:group];
 }
 
-- (void)setTextTracks:(NSArray*) textTracks;
+- (void)setTextTracks:(NSArray*)textTracks
 {
   _textTracks = textTracks;
   
