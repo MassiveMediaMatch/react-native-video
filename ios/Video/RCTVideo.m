@@ -132,11 +132,8 @@ static BOOL volumeOverridesMuteSwitch = NO;
     _playWhenInactive = false;
     _pictureInPicture = false;
     _ignoreSilentSwitch = @"inherit"; // inherit, ignore, obey
-<<<<<<< HEAD
 	  _volumeOverridesSilentSwitch = NO;
-=======
     _mixWithOthers = @"inherit"; // inherit, mix, duck
->>>>>>> 5683167a3a8e6a1d7d49526c995cf253def48e67
 #if TARGET_OS_IOS
     _restoreUserInterfaceForPIPStopCompletionHandler = NULL;
 #endif
