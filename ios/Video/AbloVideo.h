@@ -6,21 +6,8 @@
 #import <React/RCTComponent.h>
 #import <React/RCTBridgeModule.h>
 
-#if __has_include(<react-native-video/RCTVideoCache.h>)
-#import <react-native-video/RCTVideoCache.h>
-#import <DVAssetLoaderDelegate/DVURLAsset.h>
-#import <DVAssetLoaderDelegate/DVAssetLoaderDelegate.h>
-#endif
-
 @class RCTEventDispatcher;
-#if __has_include(<react-native-video/RCTVideoCache.h>)
-@interface AbloVideo : UIView <RCTVideoPlayerViewControllerDelegate, DVAssetLoaderDelegatesDelegate>
-#elif TARGET_OS_TV
-@interface AbloVideo : UIView <RCTVideoPlayerViewControllerDelegate>
-#else
-API_AVAILABLE(ios(9.0))
-@interface AbloVideo : UIView <RCTVideoPlayerViewControllerDelegate, AVPictureInPictureControllerDelegate>
-#endif
+@interface AbloVideo : UIView
 
 @property (nonatomic, copy) RCTDirectEventBlock onVideoLoadStart;
 @property (nonatomic, copy) RCTDirectEventBlock onVideoLoad;
@@ -46,12 +33,7 @@ API_AVAILABLE(ios(9.0))
 @property (nonatomic, copy) RCTDirectEventBlock onVolumeChanged;
 @property (nonatomic, copy) RCTDirectEventBlock onSilentSwitchChanged;
 
-- (instancetype)initWithEventDispatcher:(RCTEventDispatcher *)eventDispatcher NS_DESIGNATED_INITIALIZER;
-
-- (AVPlayerViewController*)createPlayerViewController:(AVPlayer*)player withPlayerItem:(AVPlayerItem*)playerItem;
-
-- (void)save:(NSDictionary *)options resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject;
-
+- (instancetype)initWithEventDispatcher:(RCTEventDispatcher *)eventDispatcher;
 - (void)displayIndex: (NSInteger)index;
 
 @end
