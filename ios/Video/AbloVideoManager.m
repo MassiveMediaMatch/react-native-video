@@ -69,6 +69,21 @@ RCT_EXPORT_VIEW_PROPERTY(onPlaybackRateChange, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onVideoExternalPlaybackChange, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onSilentSwitchChanged, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onVolumeChanged, RCTDirectEventBlock);
+RCT_REMAP_METHOD(save,
+        options:(NSDictionary *)options
+        reactTag:(nonnull NSNumber *)reactTag
+        resolver:(RCTPromiseResolveBlock)resolve
+        rejecter:(RCTPromiseRejectBlock)reject)
+{
+    [self.bridge.uiManager prependUIBlock:^(__unused RCTUIManager *uiManager, NSDictionary<NSNumber *, AbloVideo *> *viewRegistry) {
+        AbloVideo *view = (AbloVideo*)viewRegistry[reactTag];
+        if (![view isKindOfClass:[AbloVideo class]]) {
+            RCTLogError(@"Invalid view returned from registry, expecting AbloVideo, got: %@", view);
+        } else {
+            [view save:options resolve:resolve reject:reject];
+        }
+    }];
+}
 RCT_EXPORT_VIEW_PROPERTY(onPictureInPictureStatusChanged, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onRestoreUserInterfaceForPictureInPictureStop, RCTDirectEventBlock);
 
