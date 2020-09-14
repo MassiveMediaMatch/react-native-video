@@ -288,16 +288,37 @@ static BOOL volumeOverridesMuteSwitch = NO;
   
   [[NSNotificationCenter defaultCenter] postNotificationName:@"RCTVideo_progress" object:nil userInfo:@{@"progress": [NSNumber numberWithDouble: currentTimeSecs / duration]}];
   
+  NSNumber *currentSeconds = [NSNumber numberWithFloat:CMTimeGetSeconds(currentTime)];
+  NSNumber *totalSeconds = [NSNumber numberWithFloat:duration];
+	
   if( currentTimeSecs >= 0 && self.onVideoProgress) {
     self.onVideoProgress(@{
-                           @"currentTime": [NSNumber numberWithFloat:CMTimeGetSeconds(currentTime)],
-                           @"playableDuration": [self calculatePlayableDuration],
+                           @"currentTime": currentSeconds,
+                           @"playableDuration": totalSeconds,
                            @"atValue": [NSNumber numberWithLongLong:currentTime.value],
                            @"atTimescale": [NSNumber numberWithInt:currentTime.timescale],
                            @"target": self.reactTag,
                            @"seekableDuration": [self calculateSeekableDuration],
                            });
   }
+	
+	// fix m3u8 streams getting stuck right before reaching end. (0.99 seconds left before reaching total duration?)
+	// https://github.com/react-native-community/react-native-video/issues/831
+	CGFloat timeLeft = totalSeconds.floatValue - currentSeconds.floatValue;
+	if (timeLeft <= 1.0) {
+		NSLog(@"PlayerItem stuck with %f seconds left", timeLeft);
+		
+		if(self.onVideoEnd) {
+		  self.onVideoEnd(@{@"target": self.reactTag});
+		}
+		
+		[_playerItem seekToTime:kCMTimeZero];
+		  if (@available(iOS 10.0, *)) {
+			  [_player playImmediatelyAtRate:1.0];
+		  } else {
+			  [_player play];
+		  }
+	}
 }
 
 /*!
@@ -376,33 +397,33 @@ static BOOL volumeOverridesMuteSwitch = NO;
 
     // perform on next run loop, otherwise other passed react-props may not be set
     [self playerItemForSource:source withCallback:^(AVPlayerItem * playerItem) {
-      _playerItem = playerItem;
-      [self addPlayerItemObservers];
-      [self setFilter:_filterName];
-      [self setMaxBitRate:_maxBitRate];
+		self->_playerItem = playerItem;
+		[self addPlayerItemObservers];
+		[self setFilter:self->_filterName];
+		[self setMaxBitRate:self->_maxBitRate];
       
-      [_player pause];
+		[self->_player pause];
         
-      if (_playbackRateObserverRegistered) {
-        [_player removeObserver:self forKeyPath:playbackRate context:nil];
-        _playbackRateObserverRegistered = NO;
+		if (self->_playbackRateObserverRegistered) {
+		  [self->_player removeObserver:self forKeyPath:playbackRate context:nil];
+			self->_playbackRateObserverRegistered = NO;
       }
-      if (_isExternalPlaybackActiveObserverRegistered) {
-        [_player removeObserver:self forKeyPath:externalPlaybackActive context:nil];
-        _isExternalPlaybackActiveObserverRegistered = NO;
+		if (self->_isExternalPlaybackActiveObserverRegistered) {
+			[self->_player removeObserver:self forKeyPath:externalPlaybackActive context:nil];
+			self->_isExternalPlaybackActiveObserverRegistered = NO;
       }
 	          
-      _player = [AVPlayer playerWithPlayerItem:_playerItem];
-      _player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
+		self->_player = [AVPlayer playerWithPlayerItem:_playerItem];
+		self->_player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
       if (@available(iOS 10.0, *)) {
-        _player.automaticallyWaitsToMinimizeStalling = NO;
+		  self->_player.automaticallyWaitsToMinimizeStalling = NO;
       }
         
-      [_player addObserver:self forKeyPath:playbackRate options:0 context:nil];
-      _playbackRateObserverRegistered = YES;
+		[self->_player addObserver:self forKeyPath:playbackRate options:0 context:nil];
+		self->_playbackRateObserverRegistered = YES;
       
-      [_player addObserver:self forKeyPath:externalPlaybackActive options:0 context:nil];
-      _isExternalPlaybackActiveObserverRegistered = YES;
+		[self->_player addObserver:self forKeyPath:externalPlaybackActive options:0 context:nil];
+		self->_isExternalPlaybackActiveObserverRegistered = YES;
         
       [self addPlayerTimeObserver];
 
@@ -718,8 +739,8 @@ static BOOL volumeOverridesMuteSwitch = NO;
         }
         _videoLoadStarted = NO;
         
-        [self attachListeners];
-        [self applyModifiers];
+		  [self applyModifiers];
+          [self attachListeners];
       } else if (_playerItem.status == AVPlayerItemStatusFailed && self.onVideoError) {
         self.onVideoError(@{@"error": @{@"code": [NSNumber numberWithInteger: _playerItem.error.code],
                                         @"domain": _playerItem.error.domain},
@@ -836,7 +857,13 @@ static BOOL volumeOverridesMuteSwitch = NO;
   if (_repeat) {
     AVPlayerItem *item = [notification object];
     [item seekToTime:kCMTimeZero];
-    [self applyModifiers];
+	  if (@available(iOS 10.0, *)) {
+		  [_player playImmediatelyAtRate:1.0];
+	  } else {
+		  [_player play];
+	  }
+	  
+//    [self applyModifiers];
   } else {
     [self removePlayerTimeObserver];
   }
