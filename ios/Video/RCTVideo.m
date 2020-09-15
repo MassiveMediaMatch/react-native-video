@@ -32,6 +32,9 @@ static BOOL volumeOverridesMuteSwitch = NO;
 @property (nonatomic, assign) BOOL volumeObserverSet;
 @property (nonatomic, assign) BOOL silent;
 @property (nonatomic, assign) BOOL firstSilentNotificationReceived;
+@property (nonatomic, assign) NSTimeInterval onVideoProgressSent;
+@property (nonatomic, strong) NSTimer *repeatTimer;
+@property (nonatomic, strong) NSNumber *lastCurrentTime;
 @end
 
 @implementation RCTVideo
@@ -219,6 +222,7 @@ static BOOL volumeOverridesMuteSwitch = NO;
   [[NSNotificationCenter defaultCenter] removeObserver:self];
   [self removePlayerLayer];
   [self removePlayerItemObservers];
+  [self stopRepeatTimer];
   [_player removeObserver:self forKeyPath:playbackRate context:nil];
   [_player removeObserver:self forKeyPath:externalPlaybackActive context: nil];
 	
@@ -291,8 +295,16 @@ static BOOL volumeOverridesMuteSwitch = NO;
   NSNumber *currentSeconds = [NSNumber numberWithFloat:CMTimeGetSeconds(currentTime)];
   NSNumber *totalSeconds = [NSNumber numberWithFloat:duration];
 	
-  if( currentTimeSecs >= 0 && self.onVideoProgress) {
-    self.onVideoProgress(@{
+	BOOL canSend = YES;
+	if (self.onVideoProgressSent > 0) {
+		NSTimeInterval now = [NSDate new].timeIntervalSince1970;
+		CGFloat diff = now - self.onVideoProgressSent;
+		canSend = diff > 1;
+	}
+	
+    if( currentTimeSecs >= 0 && self.onVideoProgress && canSend) {
+      self.onVideoProgressSent = [NSDate new].timeIntervalSince1970;
+      self.onVideoProgress(@{
                            @"currentTime": currentSeconds,
                            @"playableDuration": totalSeconds,
                            @"atValue": [NSNumber numberWithLongLong:currentTime.value],
@@ -300,25 +312,8 @@ static BOOL volumeOverridesMuteSwitch = NO;
                            @"target": self.reactTag,
                            @"seekableDuration": [self calculateSeekableDuration],
                            });
-  }
-	
-	// fix m3u8 streams getting stuck right before reaching end. (0.99 seconds left before reaching total duration?)
-	// https://github.com/react-native-community/react-native-video/issues/831
-	CGFloat timeLeft = totalSeconds.floatValue - currentSeconds.floatValue;
-	if (timeLeft <= 1.0) {
-		NSLog(@"PlayerItem stuck with %f seconds left", timeLeft);
-		
-		if(self.onVideoEnd) {
-		  self.onVideoEnd(@{@"target": self.reactTag});
-		}
-		
-		[_playerItem seekToTime:kCMTimeZero];
-		  if (@available(iOS 10.0, *)) {
-			  [_player playImmediatelyAtRate:1.0];
-		  } else {
-			  [_player play];
-		  }
-	}
+		NSLog(@"onVideoProgress");
+    }
 }
 
 /*!
@@ -384,6 +379,7 @@ static BOOL volumeOverridesMuteSwitch = NO;
 - (void)setSrc:(NSDictionary *)source
 {
   _source = source;
+  [self stopRepeatTimer];
   [self removePlayerLayer];
   [self removePlayerTimeObserver];
   [self removePlayerItemObservers];
@@ -749,10 +745,12 @@ static BOOL volumeOverridesMuteSwitch = NO;
     } else if ([keyPath isEqualToString:playbackBufferEmptyKeyPath]) {
       _playerBufferEmpty = YES;
       self.onVideoBuffer(@{@"isBuffering": @(YES), @"target": self.reactTag});
+		[self stopRepeatTimer];
     } else if ([keyPath isEqualToString:playbackLikelyToKeepUpKeyPath]) {
       // Continue playing (or not if paused) after being paused due to hitting an unbuffered zone.
       if ((!(_controls || _fullscreenPlayerPresented) || _playerBufferEmpty) && _playerItem.playbackLikelyToKeepUp) {
         [self setPaused:_paused];
+		  [self startRepeatTimer];
       }
       _playerBufferEmpty = NO;
       self.onVideoBuffer(@{@"isBuffering": @(NO), @"target": self.reactTag});
@@ -955,6 +953,7 @@ static BOOL volumeOverridesMuteSwitch = NO;
   if (paused) {
     [_player pause];
     [_player setRate:0.0];
+	[self stopRepeatTimer];
     self.muteSwitchDetector.silentNotify = nil;
   }
   else
@@ -986,6 +985,7 @@ static BOOL volumeOverridesMuteSwitch = NO;
 	} else {
 		[_player play];
 	}
+	[self startRepeatTimer];
 	
     [_player setRate:_rate];
   }
@@ -1480,6 +1480,15 @@ static BOOL volumeOverridesMuteSwitch = NO;
   _playerLayer = nil;
 }
 
+- (void)setLicenseResult:(NSString *)license {
+
+}
+
+- (BOOL)setLicenseResultError:(NSString *)error {
+	return NO;
+}
+
+
 #pragma mark - RCTVideoPlayerViewControllerDelegate
 
 - (void)videoPlayerViewControllerWillDismiss:(AVPlayerViewController *)playerViewController
@@ -1607,6 +1616,7 @@ static BOOL volumeOverridesMuteSwitch = NO;
   _player = nil;
   
   [self removePlayerLayer];
+  [self stopRepeatTimer];
   
   [_playerViewController.contentOverlayView removeObserver:self forKeyPath:@"frame"];
   [_playerViewController removeObserver:self forKeyPath:readyForDisplayKeyPath];
@@ -1774,6 +1784,51 @@ static BOOL volumeOverridesMuteSwitch = NO;
 	}
 
 	self.firstSilentNotificationReceived = YES;
+}
+
+
+#pragma mark - repeat timer
+
+- (void)startRepeatTimer
+{
+	if (!self.repeatTimer) {
+		self.repeatTimer = [NSTimer scheduledTimerWithTimeInterval:0.3 target:self selector:@selector(onRepeatTimerTick:) userInfo:nil repeats:YES];
+	}
+}
+
+- (void)stopRepeatTimer
+{
+	if (self.repeatTimer) {
+		[self.repeatTimer invalidate];
+		self.repeatTimer = nil;
+	}
+}
+
+- (void)onRepeatTimerTick:(NSTimer*)timer
+{
+	CMTime currentTime = _player.currentTime;
+	NSNumber *currentSeconds = [NSNumber numberWithFloat:CMTimeGetSeconds(currentTime)];
+	
+	if (self.lastCurrentTime.floatValue == currentSeconds.floatValue && currentSeconds.floatValue > 1.0) {
+		// fix m3u8 streams getting stuck right before reaching end. (0.99 seconds left before reaching total duration?)
+		// https://github.com/react-native-community/react-native-video/issues/831
+		NSLog(@"PlayerItem stuck at %f seconds", currentSeconds.floatValue);
+		
+		if(self.onVideoEnd) {
+		  self.onVideoEnd(@{@"target": self.reactTag});
+		}
+		
+		if (!_player.currentItem) {
+			NSLog(@"currentItem is nil");
+		}
+		[_player.currentItem seekToTime:kCMTimeZero];
+		if (@available(iOS 10.0, *)) {
+			[_player playImmediatelyAtRate:1.0];
+		} else {
+			[_player play];
+		}
+	}
+	self.lastCurrentTime = currentSeconds;
 }
 
 @end
