@@ -411,6 +411,19 @@ static BOOL volumeOverridesMuteSwitch = NO;
 	          
 		self->_player = [AVPlayer playerWithPlayerItem:_playerItem];
 		self->_player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
+		
+		_playerLayer = [AVPlayerLayer playerLayerWithPlayer:_player];
+		_playerLayer.frame = self.bounds;
+		_playerLayer.needsDisplayOnBoundsChange = YES;
+		
+		[self setResizeMode:_resizeMode]; // to prevent video from being animated when resizeMode is 'cover' resize mode must be set before layer is added
+		
+		[_playerLayer addObserver:self forKeyPath:readyForDisplayKeyPath options:NSKeyValueObservingOptionNew context:nil];
+		_playerLayerObserverSet = YES;
+		
+		[self.layer addSublayer:_playerLayer];
+		self.layer.needsDisplayOnBoundsChange = YES;
+		
       if (@available(iOS 10.0, *)) {
 		  self->_player.automaticallyWaitsToMinimizeStalling = NO;
       }
@@ -1419,6 +1432,9 @@ static BOOL volumeOverridesMuteSwitch = NO;
   }
 }
 
+/**
+ * Delaying the creation of AVPlayerLayer breaks aspect ratio on iOS14 videos
+ */
 - (void)usePlayerLayer
 {
   if( _player )
@@ -1455,7 +1471,7 @@ static BOOL volumeOverridesMuteSwitch = NO;
     {
       [_playerViewController.view removeFromSuperview];
       _playerViewController = nil;
-      [self usePlayerLayer];
+//      [self usePlayerLayer];
     }
   }
 }
