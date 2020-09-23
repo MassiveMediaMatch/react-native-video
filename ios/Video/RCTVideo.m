@@ -993,6 +993,9 @@ static BOOL volumeOverridesMuteSwitch = NO;
 //	  NSLog(@"output volume: %f", volume);
 //	  [_player setVolume:volume];
 	  
+	  [[AVAudioSession sharedInstance] setCategory: AVAudioSessionCategoryPlayback error: nil];
+	  [[AVAudioSession sharedInstance] setActive:YES error:nil];
+	  
 	if (@available(iOS 10.0, *)) {
 		[_player playImmediatelyAtRate:1.0];
 	} else {
