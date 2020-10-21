@@ -296,11 +296,11 @@ static BOOL volumeOverridesMuteSwitch = NO;
   NSNumber *totalSeconds = [NSNumber numberWithFloat:duration];
 	
 	BOOL canSend = YES;
-	if (self.onVideoProgressSent > 0) {
-		NSTimeInterval now = [NSDate new].timeIntervalSince1970;
-		CGFloat diff = now - self.onVideoProgressSent;
-		canSend = diff > 1;
-	}
+//	if (self.onVideoProgressSent > 0) {
+//		NSTimeInterval now = [NSDate new].timeIntervalSince1970;
+//		CGFloat diff = now - self.onVideoProgressSent;
+//		canSend = diff > 0.5;
+//	}
 	
     if( currentTimeSecs >= 0 && self.onVideoProgress && canSend) {
       self.onVideoProgressSent = [NSDate new].timeIntervalSince1970;
@@ -312,7 +312,6 @@ static BOOL volumeOverridesMuteSwitch = NO;
                            @"target": self.reactTag,
                            @"seekableDuration": [self calculateSeekableDuration],
                            });
-		NSLog(@"onVideoProgress");
     }
 }
 
