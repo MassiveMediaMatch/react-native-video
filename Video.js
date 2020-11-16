@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { StyleSheet, requireNativeComponent, NativeModules, View, ViewPropTypes, Image, Platform, findNodeHandle } from 'react-native';
+import { StyleSheet, requireNativeComponent, NativeModules, View, ViewPropTypes, Image, Platform, findNodeHandle, UIManager } from 'react-native';
 import resolveAssetSource from 'react-native/Libraries/Image/resolveAssetSource';
 import TextTrackType from './TextTrackType';
 import FilterType from './FilterType';
@@ -65,6 +65,22 @@ export default class Video extends Component {
 		} else {
 			this.setNativeProps({ seek: time });
 		}
+	};
+
+	release = () => {
+		UIManager.dispatchViewManagerCommand(
+			findNodeHandle(this._root),
+			UIManager.getViewManagerConfig('RCTVideo').Commands['release'],
+			[],
+		)
+	};
+
+	init = () => {
+		UIManager.dispatchViewManagerCommand(
+			findNodeHandle(this._root),
+			UIManager.getViewManagerConfig('RCTVideo').Commands['init'],
+			[],
+		)
 	};
 
 	presentFullscreenPlayer = () => {
