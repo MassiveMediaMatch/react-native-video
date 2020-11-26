@@ -2,7 +2,10 @@ package com.brentvatne.exoplayer;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Handler;
@@ -14,6 +17,8 @@ import android.view.Window;
 import android.view.accessibility.CaptioningManager;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
+
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.brentvatne.react.R;
 import com.brentvatne.receiver.AudioBecomingNoisyReceiver;
@@ -198,6 +203,8 @@ class ReactExoplayerView extends FrameLayout implements
         this.config = config;
         this.bandwidthMeter = config.getBandwidthMeter();
 
+        LocalBroadcastManager.getInstance(context).registerReceiver(releasePlayer, new IntentFilter("live.ablo.intent.INTENT_EXOPLAYER_RELEASE"));
+        LocalBroadcastManager.getInstance(context).registerReceiver(initPlayer, new IntentFilter("live.ablo.intent.INTENT_EXOPLAYER_INIT"));
         createViews();
 
         audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
@@ -205,6 +212,19 @@ class ReactExoplayerView extends FrameLayout implements
         audioBecomingNoisyReceiver = new AudioBecomingNoisyReceiver(themedReactContext);
     }
 
+    private BroadcastReceiver releasePlayer = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            cleanUpResources();
+        }
+    };
+
+    private BroadcastReceiver initPlayer = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            initializePlayer();
+        }
+    };
 
     @Override
     public void setId(int id) {
@@ -267,6 +287,8 @@ class ReactExoplayerView extends FrameLayout implements
     @Override
     public void onHostDestroy() {
         stopPlayback();
+        LocalBroadcastManager.getInstance(getContext()).unregisterReceiver(releasePlayer);
+        LocalBroadcastManager.getInstance(getContext()).unregisterReceiver(initPlayer);
     }
 
     public void cleanUpResources() {

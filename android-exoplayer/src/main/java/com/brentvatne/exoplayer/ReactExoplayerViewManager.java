@@ -3,9 +3,7 @@ package com.brentvatne.exoplayer;
 import android.content.Context;
 import android.net.Uri;
 import android.text.TextUtils;
-import android.util.Log;
 
-import com.facebook.infer.annotation.Assertions;
 import com.facebook.react.bridge.Dynamic;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
@@ -14,7 +12,6 @@ import com.facebook.react.common.MapBuilder;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.ViewGroupManager;
 import com.facebook.react.uimanager.annotations.ReactProp;
-import com.facebook.react.bridge.ReactMethod;
 import com.google.android.exoplayer2.util.Util;
 import com.google.android.exoplayer2.DefaultLoadControl;
 import com.google.android.exoplayer2.upstream.RawResourceDataSource;
@@ -27,9 +24,6 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 
 public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerView> {
-    public static final int COMMAND_RELEASE = 100;
-    public static final int COMMAND_INIT = 101;
-
     private static final String REACT_CLASS = "RCTVideo";
 
     private static final String PROP_SRC = "src";
@@ -374,40 +368,5 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
         }
 
         return result;
-    }
-
-    @Override
-    public Map<String,Integer> getCommandsMap() {
-        Map map = MapBuilder.of();
-        map.put("release", COMMAND_RELEASE);
-        map.put("init", COMMAND_INIT);
-
-        return map;
-    }
-
-    @Override
-    public void receiveCommand(
-            ReactExoplayerView view,
-            int commandType,
-            @androidx.annotation.Nullable ReadableArray args) {
-        Assertions.assertNotNull(view);
-        Assertions.assertNotNull(args);
-        switch (commandType) {
-            case COMMAND_RELEASE: {
-                view.cleanUpResources();
-                return;
-            }
-
-            case COMMAND_INIT: {
-                view.initializePlayer();
-                return;
-            }
-
-            default:
-                throw new IllegalArgumentException(String.format(
-                        "Unsupported command %d received by %s.",
-                        commandType,
-                        getClass().getSimpleName()));
-        }
     }
 }
