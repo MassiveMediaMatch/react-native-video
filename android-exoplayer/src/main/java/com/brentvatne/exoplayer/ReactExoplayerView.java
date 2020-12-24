@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
@@ -77,6 +78,7 @@ import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 
+import java.io.IOException;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
@@ -119,6 +121,8 @@ class ReactExoplayerView extends FrameLayout implements
     private DefaultTrackSelector trackSelector;
     private boolean playerNeedsSource;
 
+    private MediaPlayer mAudioPlayer;
+
     private int resumeWindow;
     private long resumePosition;
     private boolean loadVideoStarted;
@@ -132,6 +136,7 @@ class ReactExoplayerView extends FrameLayout implements
     private int minLoadRetryCount = 3;
     private int maxBitRate = 0;
     private long seekTime = C.TIME_UNSET;
+    private Uri audioPath = null;
 
     private int minBufferMs = DefaultLoadControl.DEFAULT_MIN_BUFFER_MS;
     private int maxBufferMs = DefaultLoadControl.DEFAULT_MAX_BUFFER_MS;
@@ -415,6 +420,17 @@ class ReactExoplayerView extends FrameLayout implements
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
+                if (audioPath != null) {
+                    try {
+                        mAudioPlayer = new MediaPlayer();
+                        mAudioPlayer.setDataSource(getContext(), audioPath);
+                        mAudioPlayer.prepare();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        mAudioPlayer = null;
+                    }
+                }
+
                 if (player == null) {
                     TrackSelection.Factory videoTrackSelectionFactory = new AdaptiveTrackSelection.Factory();
                     trackSelector = new DefaultTrackSelector(videoTrackSelectionFactory);
@@ -456,9 +472,17 @@ class ReactExoplayerView extends FrameLayout implements
                     setPlayWhenReady(!isPaused);
                     playerNeedsSource = true;
 
+
                     PlaybackParameters params = new PlaybackParameters(rate, 1f);
                     player.setPlaybackParameters(params);
                 }
+
+                if (mAudioPlayer != null) {
+
+                    mAudioPlayer.start();
+                    player.setVolume(0);
+                }
+
                 if (playerNeedsSource && srcUri != null) {
                     exoPlayerView.invalidateAspectRatio();
 
@@ -477,6 +501,9 @@ class ReactExoplayerView extends FrameLayout implements
 
                     boolean haveResumePosition = resumeWindow != C.INDEX_UNSET;
                     if (haveResumePosition) {
+                        if (mAudioPlayer != null) {
+                            mAudioPlayer.seekTo((int) resumePosition);
+                        }
                         player.seekTo(resumeWindow, resumePosition);
                     }
                     player.prepare(mediaSource, !haveResumePosition, false);
@@ -582,6 +609,12 @@ class ReactExoplayerView extends FrameLayout implements
             trackSelector = null;
             player = null;
         }
+        if (mAudioPlayer != null) {
+            mAudioPlayer.stop();
+            mAudioPlayer.reset();
+            mAudioPlayer.release();
+            mAudioPlayer = null;
+        }
         progressHandler.removeMessages(SHOW_PROGRESS);
         themedReactContext.removeLifecycleEventListener(this);
         audioBecomingNoisyReceiver.removeListener();
@@ -604,11 +637,17 @@ class ReactExoplayerView extends FrameLayout implements
         }
 
         if (playWhenReady) {
+            if (mAudioPlayer != null) {
+                mAudioPlayer.start();
+            }
             boolean hasAudioFocus = requestAudioFocus();
             if (hasAudioFocus) {
                 player.setPlayWhenReady(true);
             }
         } else {
+            if (mAudioPlayer != null) {
+                mAudioPlayer.pause();
+            }
             player.setPlayWhenReady(false);
         }
     }
@@ -1242,7 +1281,7 @@ class ReactExoplayerView extends FrameLayout implements
     public void setMutedModifier(boolean muted) {
         this.muted = muted;
         audioVolume = muted ? 0.f : 1.f;
-        if (player != null) {
+        if (player != null && mAudioPlayer == null) {
             player.setVolume(audioVolume);
         }
     }
@@ -1259,6 +1298,10 @@ class ReactExoplayerView extends FrameLayout implements
         if (player != null) {
             seekTime = positionMs;
             player.seekTo(positionMs);
+        }
+        if (mAudioPlayer != null) {
+            mAudioPlayer.start();
+            mAudioPlayer.seekTo((int) positionMs);
         }
     }
 
@@ -1376,6 +1419,10 @@ class ReactExoplayerView extends FrameLayout implements
     @Override
     public void onDrmKeysRemoved() {
         Log.d("DRM Info", "onDrmKeysRemoved");
+    }
+
+    public void setAudioPath(Uri audioPath) {
+        this.audioPath = audioPath;
     }
 
     /**
