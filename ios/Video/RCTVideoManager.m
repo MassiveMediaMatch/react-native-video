@@ -73,6 +73,7 @@ RCT_EXPORT_VIEW_PROPERTY(onVideoExternalPlaybackChange, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onSilentSwitchChanged, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onVolumeChanged, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onGetLicense, RCTDirectEventBlock);
+RCT_EXPORT_VIEW_PROPERTY(audioPath, NSString);
 RCT_REMAP_METHOD(save,
         options:(NSDictionary *)options
         reactTag:(nonnull NSNumber *)reactTag

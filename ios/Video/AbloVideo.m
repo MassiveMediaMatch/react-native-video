@@ -64,6 +64,9 @@ static BOOL volumeOverridesMuteSwitch = NO;
 @property (nonatomic, strong) NSArray *textTracks;
 @property (nonatomic, strong) NSDictionary *selectedTextTrack;
 @property (nonatomic, strong) NSDictionary *selectedAudioTrack;
+
+@property (nonatomic, strong) AVAudioPlayer *soundPlayer;
+@property (nonatomic, strong) NSString *audioPath;
 @end
 
 @implementation AbloVideo
@@ -89,6 +92,7 @@ static BOOL volumeOverridesMuteSwitch = NO;
 	void (^__strong _Nonnull _restoreUserInterfaceForPIPStopCompletionHandler)(BOOL);
 	AVPictureInPictureController *_pipController;
 #endif
+	NSString *_audioPath;
 }
 
 - (instancetype)initWithEventDispatcher:(RCTEventDispatcher *)eventDispatcher
@@ -993,6 +997,12 @@ static BOOL volumeOverridesMuteSwitch = NO;
 		}
 		
 		[_player setRate:_rate];
+		
+		// play sound if property is set
+		if (self.audioPath) {
+			[self stopAudioPathSound];
+			[self playAudioPathSound];
+		}
 	}
 	
 	_paused = paused;
@@ -1047,6 +1057,12 @@ static BOOL volumeOverridesMuteSwitch = NO;
 			}];
 			
 			_pendingSeek = false;
+			
+			// play sound if property is set
+			if (self.audioPath) {
+				[self stopAudioPathSound];
+				[self playAudioPathSound];
+			}
 		}
 		
 	} else {
@@ -1784,6 +1800,36 @@ static BOOL volumeOverridesMuteSwitch = NO;
 	}
 	
 	self.firstSilentNotificationReceived = YES;
+}
+
+- (void)setAudioPath:(NSString *)audioPath
+{
+	_audioPath = audioPath;
+	
+	NSURL *url = [NSURL fileURLWithPath:audioPath];
+	NSString *type = url.pathExtension;
+	NSString *file = [url.path.lastPathComponent stringByDeletingPathExtension];
+	NSString *directory = [[url.path stringByDeletingLastPathComponent] lastPathComponent];
+	NSString *soundFilePath = [[NSBundle mainBundle] pathForResource:file ofType:type inDirectory:directory];
+
+	if (soundFilePath) {
+		NSURL *soundFileURL = [NSURL fileURLWithPath:soundFilePath];
+		self.soundPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:soundFileURL error:nil];
+		[self.soundPlayer prepareToPlay];
+		self.soundPlayer.numberOfLoops = 0; //-1;
+	} else {
+		NSLog(@"Error; no sound file found at path %@", audioPath);
+	}
+}
+
+- (void)playAudioPathSound
+{
+	[self.soundPlayer play];
+}
+
+- (void)stopAudioPathSound
+{
+	[self.soundPlayer stop];
 }
 
 @end
