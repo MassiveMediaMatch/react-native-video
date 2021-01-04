@@ -35,6 +35,8 @@ static BOOL volumeOverridesMuteSwitch = NO;
 @property (nonatomic, assign) NSTimeInterval onVideoProgressSent;
 @property (nonatomic, strong) NSTimer *repeatTimer;
 @property (nonatomic, strong) NSNumber *lastCurrentTime;
+@property (nonatomic, strong) AVAudioPlayer *soundPlayer;
+@property (nonatomic, strong) NSString *audioPath;
 @end
 
 @implementation RCTVideo
@@ -226,6 +228,7 @@ static BOOL volumeOverridesMuteSwitch = NO;
   [_player removeObserver:self forKeyPath:playbackRate context:nil];
   [_player removeObserver:self forKeyPath:externalPlaybackActive context: nil];
 	
+  [self stopAudioPathSound];
 //  if (_volumeObserverSet) {
 //	  [[AVAudioSession sharedInstance] removeObserver:self forKeyPath:@"outputVolume"];
 //	  _volumeObserverSet = NO;
@@ -241,6 +244,9 @@ static BOOL volumeOverridesMuteSwitch = NO;
   
   [_player pause];
   [_player setRate:0.0];
+	if (self.audioPath) {
+		[self.soundPlayer pause];
+	}
 }
 
 - (void)applicationDidEnterBackground:(NSNotification *)notification
@@ -382,6 +388,8 @@ static BOOL volumeOverridesMuteSwitch = NO;
   [self removePlayerLayer];
   [self removePlayerTimeObserver];
   [self removePlayerItemObservers];
+	
+  [self stopAudioPathSound];
 
 //  if (_volumeObserverSet) {
 //    [[AVAudioSession sharedInstance] removeObserver:self forKeyPath:@"outputVolume"];
@@ -873,6 +881,11 @@ static BOOL volumeOverridesMuteSwitch = NO;
 		  [_player play];
 	  }
 	  
+	  if (self.audioPath) {
+		  [self stopAudioPathSound];
+		  [self playAudioPathSound];
+	  }
+	  
 //    [self applyModifiers];
   } else {
     [self removePlayerTimeObserver];
@@ -1003,6 +1016,12 @@ static BOOL volumeOverridesMuteSwitch = NO;
 	[self startRepeatTimer];
 	
     [_player setRate:_rate];
+	  
+	  // play sound if property is set
+	  if (self.audioPath) {
+		  [self stopAudioPathSound];
+		  [self playAudioPathSound];
+	  }
   }
   
   _paused = paused;
@@ -1054,6 +1073,12 @@ static BOOL volumeOverridesMuteSwitch = NO;
                              @"target": self.reactTag});
         }
       }];
+		
+		// play sound if property is set
+		if (self.audioPath) {
+			[self stopAudioPathSound];
+			[self playAudioPathSound];
+		}
       
       _pendingSeek = false;
     }
@@ -1635,6 +1660,8 @@ static BOOL volumeOverridesMuteSwitch = NO;
   
   [self removePlayerLayer];
   [self stopRepeatTimer];
+	
+  [self stopAudioPathSound];
   
   [_playerViewController.contentOverlayView removeObserver:self forKeyPath:@"frame"];
   [_playerViewController removeObserver:self forKeyPath:readyForDisplayKeyPath];
@@ -1845,8 +1872,43 @@ static BOOL volumeOverridesMuteSwitch = NO;
 		} else {
 			[_player play];
 		}
+		
+		if (self.audioPath) {
+			[self stopAudioPathSound];
+			[self playAudioPathSound];
+		}
 	}
 	self.lastCurrentTime = currentSeconds;
+}
+
+- (void)setAudioPath:(NSString *)audioPath
+{
+	_audioPath = audioPath;
+	
+	NSURL *url = [NSURL fileURLWithPath:audioPath];
+	NSString *type = url.pathExtension;
+	NSString *file = [url.path.lastPathComponent stringByDeletingPathExtension];
+	NSString *directory = [[url.path stringByDeletingLastPathComponent] lastPathComponent];
+	NSString *soundFilePath = [[NSBundle mainBundle] pathForResource:file ofType:type inDirectory:directory];
+
+	if (soundFilePath) {
+		NSURL *soundFileURL = [NSURL fileURLWithPath:soundFilePath];
+		self.soundPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:soundFileURL error:nil];
+		[self.soundPlayer prepareToPlay];
+		self.soundPlayer.numberOfLoops = 0; //-1;
+	} else {
+		NSLog(@"Error; no sound file found at path %@", audioPath);
+	}
+}
+
+- (void)playAudioPathSound
+{
+	[self.soundPlayer play];
+}
+
+- (void)stopAudioPathSound
+{
+	[self.soundPlayer stop];
 }
 
 @end

@@ -86,6 +86,7 @@ RCT_REMAP_METHOD(save,
 }
 RCT_EXPORT_VIEW_PROPERTY(onPictureInPictureStatusChanged, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onRestoreUserInterfaceForPictureInPictureStop, RCTDirectEventBlock);
+RCT_EXPORT_VIEW_PROPERTY(audioPath, NSString);
 
 RCT_EXPORT_METHOD(displayIndex:(nonnull NSNumber*)reactTag index:(nonnull NSNumber*)index) {
 	[self.bridge.uiManager prependUIBlock:^(__unused RCTUIManager *uiManager, NSDictionary<NSNumber *, AbloVideo *> *viewRegistry) {
