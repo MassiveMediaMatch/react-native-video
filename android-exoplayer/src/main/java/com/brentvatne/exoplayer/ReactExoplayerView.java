@@ -232,6 +232,19 @@ class ReactExoplayerView extends FrameLayout implements
     };
 
     @Override
+    public void onIsPlayingChanged(boolean isPlaying) {
+        if (isPlaying) {
+            if (!mAudioPlayer.isPlaying()) {
+                mAudioPlayer.start();
+            }
+        } else {
+            if (mAudioPlayer.isPlaying()) {
+                mAudioPlayer.pause();
+            }
+        }
+    }
+
+    @Override
     public void setId(int id) {
         super.setId(id);
         eventEmitter.setViewId(id);
@@ -420,7 +433,7 @@ class ReactExoplayerView extends FrameLayout implements
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (audioPath != null) {
+                if (audioPath != null && mAudioPlayer == null) {
                     try {
                         mAudioPlayer = new MediaPlayer();
                         mAudioPlayer.setDataSource(getContext(), audioPath);
@@ -466,6 +479,9 @@ class ReactExoplayerView extends FrameLayout implements
                             trackSelector, defaultLoadControl, drmSessionManager, bandwidthMeter);
                     player.addListener(self);
                     player.addMetadataOutput(self);
+                    if (mAudioPlayer != null) {
+                        setVolumeModifier(0f);
+                    }
                     exoPlayerView.setPlayer(player);
                     audioBecomingNoisyReceiver.setListener(self);
                     bandwidthMeter.addEventListener(new Handler(), self);
@@ -477,11 +493,6 @@ class ReactExoplayerView extends FrameLayout implements
                     player.setPlaybackParameters(params);
                 }
 
-                if (mAudioPlayer != null) {
-
-                    mAudioPlayer.start();
-                    player.setVolume(0);
-                }
 
                 if (playerNeedsSource && srcUri != null) {
                     exoPlayerView.invalidateAspectRatio();
@@ -637,17 +648,12 @@ class ReactExoplayerView extends FrameLayout implements
         }
 
         if (playWhenReady) {
-            if (mAudioPlayer != null) {
-                mAudioPlayer.start();
-            }
             boolean hasAudioFocus = requestAudioFocus();
             if (hasAudioFocus) {
                 player.setPlayWhenReady(true);
             }
+
         } else {
-            if (mAudioPlayer != null) {
-                mAudioPlayer.pause();
-            }
             player.setPlayWhenReady(false);
         }
     }
@@ -1300,7 +1306,6 @@ class ReactExoplayerView extends FrameLayout implements
             player.seekTo(positionMs);
         }
         if (mAudioPlayer != null) {
-            mAudioPlayer.start();
             mAudioPlayer.seekTo((int) positionMs);
         }
     }
