@@ -233,14 +233,13 @@ class ReactExoplayerView extends FrameLayout implements
 
     @Override
     public void onIsPlayingChanged(boolean isPlaying) {
-        if (isPlaying) {
-            if (!mAudioPlayer.isPlaying()) {
-                mAudioPlayer.start();
-            }
-        } else {
-            if (mAudioPlayer.isPlaying()) {
-                mAudioPlayer.pause();
-            }
+        if (mAudioPlayer == null) {
+            return;
+        }
+        if (isPlaying && !mAudioPlayer.isPlaying()) {
+            mAudioPlayer.start();
+        } else if (mAudioPlayer.isPlaying()) {
+            mAudioPlayer.pause();
         }
     }
 
@@ -1306,7 +1305,7 @@ class ReactExoplayerView extends FrameLayout implements
             player.seekTo(positionMs);
         }
         if (mAudioPlayer != null) {
-            mAudioPlayer.seekTo((int) positionMs);
+            mAudioPlayer.seekTo(0);
         }
     }
 
