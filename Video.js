@@ -52,7 +52,7 @@ export default class Video extends Component {
 		return strObj;
 	}
 
-	seek = (time, tolerance = 100) => {
+	seek = (time, tolerance = 100, playAudio = false) => {
 		if (isNaN(time)) { throw new Error('Specified time is not a number'); }
 
 		if (Platform.OS === 'ios') {
@@ -60,6 +60,7 @@ export default class Video extends Component {
 				seek: {
 					time,
 					tolerance,
+					playAudio,
 				},
 			});
 		} else {

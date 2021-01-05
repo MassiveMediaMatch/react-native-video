@@ -1004,7 +1004,7 @@ static BOOL volumeOverridesMuteSwitch = NO;
 //
 //	  NSLog(@"output volume: %f", volume);
 //	  [_player setVolume:volume];
-	  
+	  	  
 	  [[AVAudioSession sharedInstance] setCategory: AVAudioSessionCategoryPlayback error: nil];
 	  [[AVAudioSession sharedInstance] setActive:YES error:nil];
 	  
@@ -1045,6 +1045,7 @@ static BOOL volumeOverridesMuteSwitch = NO;
 {
   NSNumber *seekTime = info[@"time"];
   NSNumber *seekTolerance = info[@"tolerance"];
+  NSNumber *playAudio = info[@"playAudio"];
   
   int timeScale = 1000;
   
@@ -1077,7 +1078,9 @@ static BOOL volumeOverridesMuteSwitch = NO;
 		// play sound if property is set
 		if (self.audioPath) {
 			[self stopAudioPathSound];
-			[self playAudioPathSound];
+			if ([playAudio boolValue]) {
+				[self playAudioPathSound];
+			}
 		}
       
       _pendingSeek = false;
@@ -1115,7 +1118,7 @@ static BOOL volumeOverridesMuteSwitch = NO;
 
 - (void)applyModifiers
 {
-  if (_muted) {
+  if (_muted || _audioPath) {
     if (!_controls) {
       [_player setVolume:0];
     }
@@ -1899,10 +1902,15 @@ static BOOL volumeOverridesMuteSwitch = NO;
 	} else {
 		NSLog(@"Error; no sound file found at path %@", audioPath);
 	}
+	
+	[self applyModifiers];
 }
 
 - (void)playAudioPathSound
 {
+	[self.soundPlayer stop];
+	[self.soundPlayer setCurrentTime:0];
+	[self.soundPlayer prepareToPlay];
 	[self.soundPlayer play];
 }
 
