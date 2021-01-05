@@ -1903,7 +1903,15 @@ static BOOL volumeOverridesMuteSwitch = NO;
 		NSLog(@"Error; no sound file found at path %@", audioPath);
 	}
 	
-	[self applyModifiers];
+	if (_audioPath) {
+	  if (!_controls) {
+		[_player setVolume:0];
+	  }
+	  [_player setMuted:YES];
+	} else {
+	  [_player setVolume:_volume];
+	  [_player setMuted:NO];
+	}
 }
 
 - (void)playAudioPathSound
