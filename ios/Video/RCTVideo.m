@@ -240,13 +240,15 @@ static BOOL volumeOverridesMuteSwitch = NO;
 
 - (void)applicationWillResignActive:(NSNotification *)notification
 {
-  if (_playInBackground || _playWhenInactive || _paused) return;
+  if (_playInBackground || _playWhenInactive) return;
   
   [_player pause];
   [_player setRate:0.0];
 	if (self.audioPath) {
 		[self.soundPlayer pause];
 	}
+  [self stopRepeatTimer];
+  [self.soundPlayer stop];
 }
 
 - (void)applicationDidEnterBackground:(NSNotification *)notification
@@ -264,6 +266,8 @@ static BOOL volumeOverridesMuteSwitch = NO;
   if (_playInBackground) {
     [_playerLayer setPlayer:_player];
     [_playerViewController setPlayer:_player];
+  } else {
+	  [self.soundPlayer play];
   }
 }
 
