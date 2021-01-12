@@ -1140,6 +1140,12 @@ class ReactExoplayerView extends FrameLayout implements
         this.preventsDisplaySleepDuringVideoPlayback = preventsDisplaySleepDuringVideoPlayback;
     }
 
+    public void setMirror(boolean shouldMirror) {
+        if (shouldMirror) {
+            exoPlayerView.setScaleX(-1);
+        }
+    }
+
     public void setSelectedTrack(int trackType, String type, Dynamic value) {
         if (player == null) return;
         int rendererIndex = getTrackRendererIndex(trackType);

@@ -68,6 +68,7 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
     private static final String PROP_HIDE_SHUTTER_VIEW = "hideShutterView";
     private static final String PROP_CONTROLS = "controls";
     private static final String PROP_AUDIOPATH = "audioPath";
+    private static final String PROP_MIRROR = "mirror";
 
     private ReactExoplayerConfig config;
 
@@ -187,6 +188,12 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
     @ReactProp(name = PROP_PREVENTS_DISPLAY_SLEEP_DURING_VIDEO_PLAYBACK, defaultBoolean = false)
     public void setPreventsDisplaySleepDuringVideoPlayback(final ReactExoplayerView videoView, final boolean preventsSleep) {
         videoView.setPreventsDisplaySleepDuringVideoPlayback(preventsSleep);
+    }
+
+    @ReactProp(name = PROP_MIRROR, defaultBoolean = false)
+    public void setMirror(final ReactExoplayerView videoView, final boolean shouldMirror) {
+        videoView.setUseTextureView(true);
+        videoView.setMirror(shouldMirror);
     }
 
     @ReactProp(name = PROP_SELECTED_VIDEO_TRACK)
