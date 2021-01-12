@@ -420,7 +420,7 @@ static BOOL volumeOverridesMuteSwitch = NO;
 			self->_isExternalPlaybackActiveObserverRegistered = NO;
       }
 	          
-		self->_player = [AVPlayer playerWithPlayerItem:_playerItem];
+		self->_player = [AVPlayer new]; // optimize playback pipeline by not specifying player item until layer is created
 		self->_player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
 		
 		_playerLayer = [AVPlayerLayer playerLayerWithPlayer:_player];
@@ -434,6 +434,10 @@ static BOOL volumeOverridesMuteSwitch = NO;
 		
 		[self.layer addSublayer:_playerLayer];
 		self.layer.needsDisplayOnBoundsChange = YES;
+		
+		if (!_paused) {
+			[self->_player replaceCurrentItemWithPlayerItem:_playerItem];
+		}
 		
       if (@available(iOS 10.0, *)) {
 		  self->_player.automaticallyWaitsToMinimizeStalling = NO;
@@ -595,6 +599,7 @@ static BOOL volumeOverridesMuteSwitch = NO;
 #endif
 
     AVURLAsset *asset = [AVURLAsset URLAssetWithURL:url options:assetOptions];
+	[asset loadValuesAsynchronouslyForKeys:@[@"duration", @"tracks"] completionHandler:nil];
     [self playerItemPrepareText:asset assetOptions:assetOptions withCallback:handler];
     return;
   } else if (isAsset) {
@@ -1009,6 +1014,10 @@ static BOOL volumeOverridesMuteSwitch = NO;
 //	  NSLog(@"output volume: %f", volume);
 //	  [_player setVolume:volume];
 	  	  
+	  if (!_player.currentItem) {
+		  [_player replaceCurrentItemWithPlayerItem:_playerItem];
+	  }
+	  
 	  [[AVAudioSession sharedInstance] setCategory: AVAudioSessionCategoryPlayback error: nil];
 	  [[AVAudioSession sharedInstance] setActive:YES error:nil];
 	  
@@ -1027,7 +1036,7 @@ static BOOL volumeOverridesMuteSwitch = NO;
 		  [self playAudioPathSound];
 	  }
   }
-  
+
   _paused = paused;
 }
 
@@ -1692,6 +1701,13 @@ static BOOL volumeOverridesMuteSwitch = NO;
 }
 
 #pragma mark - Export
+
+- (void)prepareToPlay
+{
+	if (!_player.currentItem) {
+		[_player replaceCurrentItemWithPlayerItem:_playerItem];
+	}
+}
 
 - (void)save:(NSDictionary *)options resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
 
