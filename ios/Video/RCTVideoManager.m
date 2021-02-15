@@ -74,18 +74,6 @@ RCT_EXPORT_VIEW_PROPERTY(onSilentSwitchChanged, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onVolumeChanged, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(onGetLicense, RCTDirectEventBlock);
 RCT_EXPORT_VIEW_PROPERTY(audioPath, NSString);
-RCT_REMAP_METHOD(prepareToPlay,
-		 reactTag:(nonnull NSNumber *)reactTag)
-{
-	[self.bridge.uiManager prependUIBlock:^(__unused RCTUIManager *uiManager, NSDictionary<NSNumber *, RCTVideo *> *viewRegistry) {
-		RCTVideo *view = viewRegistry[reactTag];
-		if (![view isKindOfClass:[RCTVideo class]]) {
-			RCTLogError(@"Invalid view returned from registry, expecting RCTVideo, got: %@", view);
-		} else {
-			[view prepareToPlay];
-		}
-	}];
-};
 RCT_REMAP_METHOD(save,
         options:(NSDictionary *)options
         reactTag:(nonnull NSNumber *)reactTag

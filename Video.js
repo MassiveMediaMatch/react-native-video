@@ -96,14 +96,6 @@ export default class Video extends Component {
 		return await NativeModules.VideoManager.save(options, findNodeHandle(this._root));
 	}
 
-	prepareToPlay = () => {
-		if (Platform.OS === 'ios') {
-			NativeModules.VideoManager.prepareToPlay(findNodeHandle(this._root));
-		} else {
-			// not implemented
-		}
-	}
-
 	restoreUserInterfaceForPictureInPictureStopCompleted = (restored) => {
 		this.setNativeProps({ restoreUserInterfaceForPIPStopCompletionHandler: restored });
 	};
