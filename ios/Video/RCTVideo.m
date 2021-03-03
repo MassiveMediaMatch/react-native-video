@@ -1193,17 +1193,17 @@ static BOOL volumeOverridesMuteSwitch = NO;
 
 - (void)setSelectedAudioTrack:(NSDictionary *)selectedAudioTrack {
     _selectedAudioTrack = selectedAudioTrack;
-    [self setMediaSelectionTrackForCharacteristic:AVMediaCharacteristicAudible
-                                     withCriteria:_selectedAudioTrack];
+	if (_selectedAudioTrack) {
+		[self setMediaSelectionTrackForCharacteristic:AVMediaCharacteristicAudible withCriteria:_selectedAudioTrack];
+	}
 }
 
 - (void)setSelectedTextTrack:(NSDictionary *)selectedTextTrack {
   _selectedTextTrack = selectedTextTrack;
   if (_textTracks) { // sideloaded text tracks
     [self setSideloadedText];
-  } else { // text tracks included in the HLS playlist
-    [self setMediaSelectionTrackForCharacteristic:AVMediaCharacteristicLegible
-                                     withCriteria:_selectedTextTrack];
+  } else if (selectedTextTrack) { // text tracks included in the HLS playlist
+    [self setMediaSelectionTrackForCharacteristic:AVMediaCharacteristicLegible withCriteria:_selectedTextTrack];
   }
 }
 
